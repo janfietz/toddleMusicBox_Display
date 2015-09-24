@@ -231,7 +231,7 @@ void ws2811Stop(ws2811Driver *ws2811p) {
 	osalSysUnlock();
 }
 
-void ws2811SetColor(ws2811Driver *ws2811p, int ledNum, struct Color *color)
+void ws2811SetColor(ws2811Driver *ws2811p, int ledNum, const struct Color *color)
 {
     osalDbgCheck(ws2811p != NULL);
     osalDbgCheck(ledNum < ws2811p->config->ledCount);

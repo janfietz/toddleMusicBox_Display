@@ -115,7 +115,7 @@ extern "C" {
   void ws2811ObjectInit(ws2811Driver *ws2811p);
   void ws2811Start(ws2811Driver *ws2811p, const ws2811Config *config);
   void ws2811Stop(ws2811Driver *ws2811p);
-  void ws2811SetColor(ws2811Driver *ws2811p, int ledNum, struct Color *color);
+  void ws2811SetColor(ws2811Driver *ws2811p, int ledNum, const struct Color *color);
   void ws2811Update(ws2811Driver *ws2811p);
 #ifdef __cplusplus
 }
