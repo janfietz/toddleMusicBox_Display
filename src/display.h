@@ -1,18 +1,20 @@
 
 /**
- * @file    effect_fade.h
+ * @file    display.h
  * @brief
  *
- * @addtogroup effects
+ * @addtogroup
  * @{
  */
 
-#ifndef _EFFECT_FADE_H_
-#define _EFFECT_FADE_H_
+#ifndef _DISPLAY_H_
+#define _DISPLAY_H_
 
-#include "ch.h"
-#include "effect.h"
+#include "displayconf.h"
 #include "color.h"
+#include <stdint.h>
+#include <stdbool.h>
+
 /*===========================================================================*/
 /* Effect constants.                                                         */
 /*===========================================================================*/
@@ -28,15 +30,6 @@
 /*===========================================================================*/
 /* Driver data structures and types.                                         */
 /*===========================================================================*/
-struct EffectFadeCfg
-{
-    systime_t period;
-    bool turn;
-};
-
-struct EffectFadeData
-{
-};
 
 /*===========================================================================*/
 /* Driver macros.                                                            */
@@ -49,13 +42,19 @@ struct EffectFadeData
 #ifdef __cplusplus
 extern "C" {
 #endif
-    msg_t EffectFadeUpdate(int16_t x, int16_t y, systime_t time, void* effectcfg, void* effectdata, const struct Color* color, struct effect_t* next);
-    void EffectFadeReset(int16_t x, int16_t y, systime_t time, void* effectcfg, void* effectdata, struct effect_t* next);
+    void DisplayDraw(int16_t x, int16_t y, const struct Color* color);
+    void DisplayPaint(void);
+
+    void DisplayLedToCoord(uint16_t led, int16_t* x, int16_t* y);
+    bool DisplayCoordToLed(int16_t x, int16_t y, uint16_t* led);
+
+    extern void SetLedColor(uint16_t led, const struct Color* color);
+    extern void SetUpdateLed(void);
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _EFFECT_WANDERING_H_ */
+#endif /* _DISPLAY_H_ */
 
 
 /** @} */

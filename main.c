@@ -89,6 +89,16 @@ static ws2811Config ws2811_cfg =
     STM32_DMA2_STREAM6,
 };
 
+void SetUpdateLed(void)
+{
+    ws2811Update(&ws2811);
+}
+
+void SetLedColor(uint16_t led, const struct Color* color)
+{
+    ws2811SetColor(&ws2811, led, color);
+}
+
 static systime_t lastPatternSelect;
 struct Color colors[LEDCOUNT];
 struct Color resetColor;
@@ -129,27 +139,19 @@ static void UpdateColors(void)
 {
     int i;
     systime_t current = chVTGetSystemTime();
-    for (i = 0; i < ws2811_cfg.ledCount; i++)
+    if (effects.p_next != NULL)
     {
-        struct Color c;
-        if (effects.p_next != NULL)
-        {
-            struct effect_t* effect = effects.p_next;
-            while (effect != NULL)
-            {
-                msg_t result = effect->update(i, current, effect->effectcfg, effect->effectdata, &colors[i], &colors[i]);
-                if (result == 1 && (effect->p_next != NULL))
-                {
-                    struct effect_t* nextEffect = effect->p_next;
-                    nextEffect->reset(i, current, nextEffect->effectcfg, nextEffect->effectdata);
-                }
-                effect = effect->p_next;
-            }
+        struct Color c = { 0, 0, 0};
+        EffectUpdate(effects.p_next, 0, 0, current, &c);
 
-            ColorCopy(&colors[i], &c);
-        }
-        else
+        DisplayPaint();
+    }
+    else
+    {
+        for (i = 0; i < ws2811_cfg.ledCount; i++)
         {
+            struct Color c;
+
             ColorCopy(&colors[i], &c);
             if (blink[i] != NULL)
             {
@@ -159,32 +161,26 @@ static void UpdateColors(void)
             {
                 faders[i](i, &c, &c, current);
             }
-        }
 
-        ws2811SetColor(&ws2811, i, &c);
+            ws2811SetColor(&ws2811, i, &c);
+        }
+        ws2811Update(&ws2811);
     }
-    ws2811Update(&ws2811);
+
+
 }
 
 static void ResetEffects(void)
 {
-    int i;
     systime_t current = chVTGetSystemTime();
-    for (i = 0; i < ws2811_cfg.ledCount; i++)
-    {
-        struct effect_t* effect = effects.p_next;
-        while (effect != NULL)
-        {
-            msg_t result = effect->reset(i, current, effect->effectcfg, effect->effectdata);
-            effect = effect->p_next;
-        }
-    }
+    struct effect_t* effect = effects.p_next;
+    EffectReset(effect, 0, 0, current);
 }
 
 static struct EffectWanderingCfg wandering_fullstrip_cfg =
 {
     .ledbegin = 0,
-    .ledend = 58
+    .ledend = 54
 };
 
 static struct EffectWanderingData wandering_fullstrip_data;
@@ -298,6 +294,8 @@ static THD_FUNCTION(Thread1, arg)
                 wandering_fullstrip_cfg.speed = rand() % 100;
                 wandering_fullstrip_cfg.turn = (rand() % 2) > 0;
 
+                wandering_fullstrip_cfg.dir = rand() % 2;
+
                 effFade_cfg.period = MS2ST(rand() % 750);
 
                 effWandering.p_next = &effSimpleColor;
@@ -389,7 +387,7 @@ static THD_FUNCTION(Thread1, arg)
 
         if (lastPatternSelect == 0 || chVTTimeElapsedSinceX(lastPatternSelect) > MS2ST(60000))
         {
-            if (chVTTimeElapsedSinceX(time) > MS2ST(30000))
+            if (chVTTimeElapsedSinceX(time) > MS2ST(15000))
             {
                 activeTestPattern++;
                 if (activeTestPattern > 5)

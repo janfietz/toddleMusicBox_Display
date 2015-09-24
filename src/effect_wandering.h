@@ -11,6 +11,7 @@
 #define _EFFECT_WANDERING_H_
 
 #include "ch.h"
+#include "effect.h"
 #include "color.h"
 /*===========================================================================*/
 /* Effect constants.                                                         */
@@ -32,13 +33,15 @@ struct EffectWanderingCfg
     int speed;
     int ledbegin;
     int ledend;
+    int8_t dir;
     bool turn;
 };
 
 struct EffectWanderingData
 {
     int pos;
-    int traildir;
+    int8_t dir_x;
+    int8_t dir_y;
     systime_t lastupdate;
 };
 
@@ -53,8 +56,8 @@ struct EffectWanderingData
 #ifdef __cplusplus
 extern "C" {
 #endif
-    msg_t EffectWanderingUpdate(uint16_t led, systime_t time, void* effectcfg, void* effectdata, const struct Color* in, struct Color* out);
-    void EffectWanderingReset(uint16_t led, systime_t time, void* effectcfg, void* effectdata);
+    msg_t EffectWanderingUpdate(int16_t x, int16_t y, systime_t time, void* effectcfg, void* effectdata, const struct Color* color, struct effect_t* next);
+    void EffectWanderingReset(int16_t x, int16_t y, systime_t time, void* effectcfg, void* effectdata, struct effect_t* next);
 #ifdef __cplusplus
 }
 #endif

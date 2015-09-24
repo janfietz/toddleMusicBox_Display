@@ -1,12 +1,14 @@
 /**
- * @file    effect_simplecolor.c
+ * @file    effect.c
  * @brief
  *
  * @addtogroup effects
  * @{
  */
 
-#include "effect_randomcolor.h"
+#include "effect.h"
+#include "display.h"
+#include <stdlib.h>
 
 /*===========================================================================*/
 /* Driver local definitions.                                                 */
@@ -34,34 +36,23 @@
  *
  */
 
-msg_t EffectRandomUpdate(int16_t x, int16_t y, systime_t time, void* effectcfg, void* effectdata, const struct Color* color, struct effect_t* next)
+msg_t EffectUpdate(struct effect_t* effect, int16_t x, int16_t y, systime_t time, const struct Color* color)
 {
-    (void) color;
-    struct EffectRandomColorCfg* cfg = (struct EffectRandomColorCfg*) effectcfg;
-    struct EffectRandomColorData* data = (struct EffectRandomColorData*) effectdata;
-
-    systime_t diff = time - data->lastupdate;
-    if (diff >= cfg->interval)
+    if (effect == NULL)
     {
-        data->lastupdate += cfg->interval;
-        ColorRandom(&data->color);
+        DisplayDraw(x, y, color);
+        return 0;
     }
 
-    struct Color out;
-    ColorCopy(&data->color, &out);
-
-    return EffectUpdate(next, x, y, time, &out);
+    return effect->update(x, y, time, effect->effectcfg, effect->effectdata, color, effect->p_next);
 }
 
-void EffectRandomReset(int16_t x, int16_t y, systime_t time, void* effectcfg, void* effectdata, struct effect_t* next)
+void EffectReset(struct effect_t* effect, int16_t x, int16_t y, systime_t time)
 {
-    (void)effectcfg;
-    struct EffectRandomColorData* data = (struct EffectRandomColorData*) effectdata;
-    data->lastupdate = time;
-
-    ColorRandom(&data->color);
-
-    EffectReset(next, x, y, time);
+    if (effect != NULL)
+    {
+        effect->reset(x, y, time, effect->effectcfg, effect->effectdata, effect->p_next);
+    }
 }
 
 /** @} */

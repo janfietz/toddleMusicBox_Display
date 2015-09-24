@@ -27,14 +27,16 @@
 /*===========================================================================*/
 /* Driver data structures and types.                                         */
 /*===========================================================================*/
+struct effect_t;
+
 /**
  * @brief
  *
  * @param[in]
  * @param[in]
  */
-typedef msg_t (*effect_update)(uint16_t led, systime_t time, void* effectcfg, void* effectdata, const struct Color* in, struct Color* out);
-typedef msg_t (*effect_reset)(uint16_t led, systime_t time, void* effectcfg, void* effectdata);
+typedef msg_t (*effect_update)(int16_t x, int16_t y, systime_t time, void* effectcfg, void* effectdata, const struct Color* color, struct effect_t* next);
+typedef void (*effect_reset)(int16_t x, int16_t y, systime_t time, void* effectcfg, void* effectdata, struct effect_t* next);
 
 struct effect_t
 {
@@ -44,6 +46,7 @@ struct effect_t
     effect_reset reset;
     struct effect_t* p_next;
 };
+
 
 /**
  * @brief   Generic effects single link list, it works like a stack.
@@ -59,7 +62,14 @@ struct effect_list {
 /*===========================================================================*/
 /* External declarations.                                                    */
 /*===========================================================================*/
-
+#ifdef __cplusplus
+extern "C" {
+#endif
+    msg_t EffectUpdate(struct effect_t* effect, int16_t x, int16_t y, systime_t time, const struct Color* color);
+    void EffectReset(struct effect_t* effect, int16_t x, int16_t y, systime_t time);
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _EFFECT_WANDERING_H_ */
 

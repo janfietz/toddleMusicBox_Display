@@ -114,11 +114,13 @@ CSRC = $(STARTUPSRC) \
        $(CHIBIOS)/os/various/shell.c \
        $(CHIBIOS)/os/hal/lib/streams/memstreams.c \
        $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
+       $(PRJ_SRC)/display.c \
        $(PRJ_SRC)/color.c \
        $(PRJ_SRC)/ws281x.c \
        $(PRJ_SRC)/usbcfg.c \
        $(PRJ_SRC)/blink.c \
        $(PRJ_SRC)/fadeout.c \
+       $(PRJ_SRC)/effect.c \
        $(PRJ_SRC)/effect_simplecolor.c \
        $(PRJ_SRC)/effect_randomcolor.c \
        $(PRJ_SRC)/effect_wandering.c \

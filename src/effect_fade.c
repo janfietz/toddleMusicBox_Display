@@ -8,6 +8,7 @@
 
 #include "effect_fade.h"
 #include "ledconf.h"
+#include "display.h"
 #include <stdlib.h>
 #include "float.h"
 #include "math.h"
@@ -44,51 +45,63 @@ static struct EffectFadeState effectFadeStates[LEDCOUNT];
  *
  */
 
-msg_t EffectFadeUpdate(uint16_t led, systime_t time, void* effectcfg, void* effectdata, const struct Color* in, struct Color* out)
+msg_t EffectFadeUpdate(int16_t x, int16_t y, systime_t time, void* effectcfg, void* effectdata, const struct Color* color, struct effect_t* next)
 {
-
-    (void)led;
-    (void)time;
-    (void)in;
     (void)effectdata;
 
     struct EffectFadeCfg* cfg = (struct EffectFadeCfg*) effectcfg;
 
-    float val = 1.0f;
-    if (led < LEDCOUNT)
+    uint16_t led = 0;
+    if (DisplayCoordToLed(x, y, &led) == true)
     {
-        systime_t diff = time - effectFadeStates[led].lastUpdate;
-        if (diff > effectFadeStates[led].fadesequence)
+        float val = 1.0f;
+        if (led < LEDCOUNT)
         {
-            effectFadeStates[led].fadesequence = 0;
-        }
-        else
-        {
-            effectFadeStates[led].fadesequence -= diff;
-        }
-        effectFadeStates[led].lastUpdate = time;
+            systime_t diff = time - effectFadeStates[led].lastUpdate;
+            if (diff > effectFadeStates[led].fadesequence)
+            {
+                effectFadeStates[led].fadesequence = 0;
+            }
+            else
+            {
+                effectFadeStates[led].fadesequence -= diff;
+            }
+            effectFadeStates[led].lastUpdate = time;
 
-        val = sinf(((float)effectFadeStates[led].fadesequence/(float)cfg->period) * (M_PI / 2.0));
+            val = sinf(((float)effectFadeStates[led].fadesequence/(float)cfg->period) * (M_PI / 2.0));
+        }
+
+        struct Color out =
+        {
+            color->R * val,
+            color->G * val,
+            color->B * val
+        };
+
+        return EffectUpdate(next, x, y, time, &out);
     }
-
-    out->R = in->R * val;
-    out->G = in->G * val;
-    out->B = in->B * val;
 
     return 0;
 }
 
-void EffectFadeReset(uint16_t led, systime_t time, void* effectcfg, void* effectdata)
+void EffectFadeReset(int16_t x, int16_t y, systime_t time, void* effectcfg, void* effectdata, struct effect_t* next)
 {
     (void)effectdata;
 
     struct EffectFadeCfg* cfg = (struct EffectFadeCfg*) effectcfg;
 
-    if (led < LEDCOUNT)
+    uint16_t led = 0;
+    if (DisplayCoordToLed(x, y, &led) == true)
     {
-        effectFadeStates[led].fadesequence = cfg->period;
-        effectFadeStates[led].lastUpdate = time;
+        if (led < LEDCOUNT)
+        {
+            effectFadeStates[led].fadesequence = cfg->period;
+            effectFadeStates[led].lastUpdate = time;
+        }
+
+        EffectReset(next, x, y, time);
     }
+
 }
 
 /** @} */

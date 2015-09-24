@@ -11,6 +11,7 @@
 #define _EFFECT_RANDOMCOLOR_H_
 
 #include "ch.h"
+#include "effect.h"
 #include "color.h"
 /*===========================================================================*/
 /* Effect constants.                                                         */
@@ -50,8 +51,8 @@ struct EffectRandomColorData
 #ifdef __cplusplus
 extern "C" {
 #endif
-    msg_t EffectRandomUpdate(uint16_t led, systime_t time, void* effectcfg, void* effectdata, const struct Color* in, struct Color* out);
-    void EffectRandomReset(uint16_t led, systime_t time, void* effectcfg, void* effectdata);
+    msg_t EffectRandomUpdate(int16_t x, int16_t y, systime_t time, void* effectcfg, void* effectdata, const struct Color* color, struct effect_t* next);
+    void EffectRandomReset(int16_t x, int16_t y, systime_t time, void* effectcfg, void* effectdata, struct effect_t* next);
 #ifdef __cplusplus
 }
 #endif

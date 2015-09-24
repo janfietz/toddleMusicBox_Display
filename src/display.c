@@ -1,12 +1,13 @@
 /**
- * @file    effect_simplecolor.c
+ * @file    display.c
  * @brief
  *
- * @addtogroup effects
+ * @addtogroup
  * @{
  */
 
-#include "effect_randomcolor.h"
+#include "display.h"
+#include <stdlib.h>
 
 /*===========================================================================*/
 /* Driver local definitions.                                                 */
@@ -24,44 +25,47 @@
 /* Driver local functions.                                                   */
 /*===========================================================================*/
 
-
 /*===========================================================================*/
 /* Driver exported functions.                                                */
 /*===========================================================================*/
-
-/**
- * @brief
- *
- */
-
-msg_t EffectRandomUpdate(int16_t x, int16_t y, systime_t time, void* effectcfg, void* effectdata, const struct Color* color, struct effect_t* next)
+void DisplayLedToCoord(uint16_t led, int16_t* x, int16_t* y)
 {
-    (void) color;
-    struct EffectRandomColorCfg* cfg = (struct EffectRandomColorCfg*) effectcfg;
-    struct EffectRandomColorData* data = (struct EffectRandomColorData*) effectdata;
-
-    systime_t diff = time - data->lastupdate;
-    if (diff >= cfg->interval)
-    {
-        data->lastupdate += cfg->interval;
-        ColorRandom(&data->color);
-    }
-
-    struct Color out;
-    ColorCopy(&data->color, &out);
-
-    return EffectUpdate(next, x, y, time, &out);
+    *x = led % DISPLAY_WIDTH;
+    *y = led / DISPLAY_WIDTH;
 }
 
-void EffectRandomReset(int16_t x, int16_t y, systime_t time, void* effectcfg, void* effectdata, struct effect_t* next)
+bool DisplayCoordToLed(int16_t x, int16_t y, uint16_t* led)
 {
-    (void)effectcfg;
-    struct EffectRandomColorData* data = (struct EffectRandomColorData*) effectdata;
-    data->lastupdate = time;
+    /* check if out of bounds */
+    if (x < 0)
+        return false;
+    else if (x >= DISPLAY_WIDTH)
+        return false;
 
-    ColorRandom(&data->color);
+    if (y < 0)
+        return false;
+    else if (y >= DISPLAY_HEIGHT)
+        return false;
 
-    EffectReset(next, x, y, time);
+    *led = x + (y * DISPLAY_WIDTH);
+    return true;
+}
+
+void DisplayDraw(int16_t x, int16_t y, const struct Color* color)
+{
+    /* convert 2d space coordinate to led number */
+    uint16_t lednum = 0;
+    if (DisplayCoordToLed(x, y, &lednum) == true)
+    {
+        SetLedColor(lednum, color);
+    }
+}
+
+void DisplayPaint(void)
+{
+    SetUpdateLed();
+
+
 }
 
 /** @} */
