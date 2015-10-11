@@ -125,6 +125,8 @@ CSRC = $(STARTUPSRC) \
        $(PRJ_SRC)/effect_randomcolor.c \
        $(PRJ_SRC)/effect_wandering.c \
        $(PRJ_SRC)/effect_fade.c \
+       $(PRJ_SRC)/effect_font_5x5.c \
+       board_drivers.c \
        main.c \
        ledconf.c
 

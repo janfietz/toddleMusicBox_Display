@@ -16,19 +16,22 @@
 
 #include "ch.h"
 #include "hal.h"
-#include "ws281x.h"
+
+#include "board_drivers.h"
 
 #include "chprintf.h"
 #include "shell.h"
 
 #include "float.h"
 #include "math.h"
+#include <string.h>
 
 #include "usbcfg.h"
 
 #include <stdlib.h>
 
 #include "ledconf.h"
+#include "display.h"
 #include "color.h"
 #include "blink.h"
 #include "fadeout.h"
@@ -37,57 +40,13 @@
 #include "effect_simplecolor.h"
 #include "effect_randomcolor.h"
 #include "effect_fade.h"
+#include "effect_font_5x5.h"
 
 
 /* Virtual serial port over USB.*/
 SerialUSBDriver SDU1;
+ws2811Driver ws2811;
 
-
-
-
-static ws2811Driver ws2811;
-static ws2811Config ws2811_cfg =
-{
-    LEDCOUNT,
-    LED1,
-    0b00000010,
-    (uint32_t)(&(GPIOA->BSRR.H.set)),
-    (uint32_t)(&(GPIOA->BSRR.H.clear)),
-    WS2812_BIT_PWM_WIDTH,
-    WS2812_ZERO_PWM_WIDTH,
-    WS2812_ONE_PWM_WIDTH,
-    {
-        168000000 / 2 / WS2812_BIT_PWM_WIDTH,
-        (LEDCOUNT * 24) + 20,
-        NULL,
-        {
-            { PWM_OUTPUT_ACTIVE_HIGH, NULL },
-            { PWM_OUTPUT_DISABLED, NULL },
-            { PWM_OUTPUT_DISABLED, NULL },
-            { PWM_OUTPUT_DISABLED, NULL }
-        },
-        TIM_CR2_MMS_2, /* master mode selection */
-        0,
-    },
-    &PWMD2,
-    {
-        168000000 / 2,
-        WS2812_BIT_PWM_WIDTH,
-        NULL,
-        {
-            { PWM_OUTPUT_ACTIVE_HIGH, NULL },
-            { PWM_OUTPUT_ACTIVE_HIGH, NULL },
-            { PWM_OUTPUT_ACTIVE_HIGH, NULL },
-            { PWM_OUTPUT_ACTIVE_HIGH, NULL }
-        },
-        0,
-        TIM_DIER_UDE | TIM_DIER_CC3DE | TIM_DIER_CC1DE,
-    },
-    &PWMD1,
-    STM32_DMA2_STREAM5,
-    STM32_DMA2_STREAM1,
-    STM32_DMA2_STREAM6,
-};
 
 void SetUpdateLed(void)
 {
@@ -104,6 +63,10 @@ struct Color colors[LEDCOUNT];
 struct Color resetColor;
 static blink_executecallback_t blink[LEDCOUNT];
 static fade_executecallback_t faders[LEDCOUNT];
+static char cmd_char_text[16];
+static int16_t pixel[2];
+static int16_t volume;
+
 struct Pattern1Cfg
 {
     bool randomized;
@@ -134,6 +97,28 @@ static void testLedPattern(struct Pattern1Cfg* cfg)
     }
 }
 
+static void SetVolumePattern(int16_t volume)
+{
+    int16_t step = 2;
+    struct Color volColor = {55 + (step * volume) , 255 - ((step * volume)), 0};
+
+    if (volume < 50)
+    {
+        volColor.G = 255;
+    }
+
+    int16_t x;
+    int16_t max_x = volume / 11;
+    for (x = 0; x <= max_x; x++)
+    {
+        DisplayDraw(x, 0, &volColor);
+        DisplayDraw(x, 1, &volColor);
+        DisplayDraw(x, 2, &volColor);
+        DisplayDraw(x, 3, &volColor);
+        DisplayDraw(x, 4, &volColor);
+    }
+}
+
 static struct effect_list effects;
 static void UpdateColors(void)
 {
@@ -141,7 +126,7 @@ static void UpdateColors(void)
     systime_t current = chVTGetSystemTime();
     if (effects.p_next != NULL)
     {
-        struct Color c = { 0, 0, 0};
+        struct Color c = {0, 0, 0};
         EffectUpdate(effects.p_next, 0, 0, current, &c);
 
         DisplayPaint();
@@ -166,8 +151,16 @@ static void UpdateColors(void)
         }
         ws2811Update(&ws2811);
     }
+}
 
-
+static void ResetColors(struct Color* c)
+{
+    int i;
+    for (i = 0; i < ws2811_cfg.ledCount; i++)
+    {
+        ws2811SetColor(&ws2811, i, c);
+    }
+    ws2811Update(&ws2811);
 }
 
 static void ResetEffects(void)
@@ -254,6 +247,22 @@ static struct effect_t effRandomColor =
        .p_next = &effFade,
 };
 
+static struct EffectFont5x5Cfg effFont_cfg =
+{
+    .text[0] = 'a',
+};
+
+static struct EffectFont5x5Data effFont_data;
+
+static struct effect_t effFont =
+{
+       .effectcfg = &effFont_cfg,
+       .effectdata = &effFont_data,
+       .update = (effect_update)&EffectFont5x5Update,
+       .reset = (effect_reset)&EffectFont5x5Reset,
+       .p_next = &effSimpleColor,
+};
+
 static int16_t activeTestPattern = 0;
 static THD_WORKING_AREA(waThread1, 512);
 static THD_FUNCTION(Thread1, arg)
@@ -265,6 +274,8 @@ static THD_FUNCTION(Thread1, arg)
 
     int16_t pattern = 0;
     systime_t time = chVTGetSystemTime();
+    systime_t timeNumber = chVTGetSystemTime();
+    int16_t number = 61;
     while (TRUE)
     {
         systime_t current = chVTGetSystemTime();
@@ -286,7 +297,20 @@ static THD_FUNCTION(Thread1, arg)
 
             pattern = activeTestPattern;
 
-            if(pattern == 2 || pattern == 3)
+            if(pattern == 2)
+            {
+                ColorRandom(&effSimpleColor_cfg.color);
+                effects.p_next = &effFont;
+                timeNumber = chVTGetSystemTime();
+                number = 49 ; // 1
+                effFont_cfg.text[0] = number;
+                number++;
+
+                struct Color black = {0, 0, 0};
+                ResetColors(&black);
+                ResetEffects();
+            }
+            else if(pattern == 3)
             {
 
                 ColorRandom(&effSimpleColor_cfg.color);
@@ -302,7 +326,6 @@ static THD_FUNCTION(Thread1, arg)
                 effects.p_next = &effWandering;
 
                 ResetEffects();
-
             }
             else if (pattern == 5)
             {
@@ -315,7 +338,6 @@ static THD_FUNCTION(Thread1, arg)
                 effects.p_next = &effWandering;
 
                 ResetEffects();
-
             }
             else if(pattern == 4)
             {
@@ -328,8 +350,40 @@ static THD_FUNCTION(Thread1, arg)
                     blink[i] = &BlinkExecute;
                 }
             }
+            else if(pattern == 0xCF || pattern == 0xCF - 1)
+            {
+                effects.p_next = NULL;
+
+                struct Color black = {0, 0, 0};
+                ResetColors(&black);
+
+                SetVolumePattern(volume);
+                DisplayPaint();
+            }
+            else if(pattern == 0xDF || pattern == 0xDF - 1)
+            {
+                effects.p_next = NULL;
+
+                struct Color black = {0, 0, 0};
+                ResetColors(&black);
+            }
+            else if(pattern == 0xEF || pattern == 0xEF - 1)
+            {
+                struct Color black = {0, 0, 0};
+                ResetColors(&black);
+
+                struct Color fontColor = {0, 255, 0};
+                ColorCopy(&fontColor, &effSimpleColor_cfg.color);
+                effects.p_next = &effFont;
+
+                memcpy(effFont_cfg.text, cmd_char_text, 16);
+
+                ResetEffects();
+            }
             else if(pattern == 0xFF || pattern == 0xFF - 1)
             {
+                effects.p_next = NULL;
+
                 int i;
                 for (i = 0; i < ws2811_cfg.ledCount; i++)
                 {
@@ -347,6 +401,7 @@ static THD_FUNCTION(Thread1, arg)
             }
         }
 
+        bool updateColors = true;
         if(pattern == 1)
         {
             patternCfg.randomized = false;
@@ -356,6 +411,19 @@ static THD_FUNCTION(Thread1, arg)
         else if(pattern == 2)
         {
 
+            if (chVTTimeElapsedSinceX(timeNumber) > MS2ST(900))
+            {
+                timeNumber = chVTGetSystemTime();
+                effFont_cfg.text[0] = number;
+                number++;
+
+                if (number > 58)
+                {
+                    number = 49;
+                }
+                struct Color black = {0, 0, 0};
+                ResetColors(&black);
+            }
         }
         else if(pattern == 3)
         {
@@ -363,16 +431,28 @@ static THD_FUNCTION(Thread1, arg)
         }
         else if(pattern == 4)
         {
+
         }
         else if(pattern == 5)
         {
 
         }
-        else if(pattern == 0xff)
+        else if((pattern == 0xCF) || (pattern == 0xCF - 1))
+        {
+            updateColors = false;
+        }
+        else if((pattern == 0xDF) || (pattern == 0xDF - 1))
+        {
+            struct Color pixelColor = {0, 0, 255};
+            DisplayDraw(pixel[0], pixel[1], &pixelColor);
+            DisplayPaint();
+            updateColors = false;
+        }
+        else if((pattern == 0xff) || (pattern == 0xFF - 1))
         {
 
         }
-        else if(pattern == 0xFF - 1)
+        else if((pattern == 0xEF) || (pattern == 0xEF - 1))
         {
 
         }
@@ -383,7 +463,8 @@ static THD_FUNCTION(Thread1, arg)
             chThdSleepMilliseconds(40);
         }
 
-        UpdateColors();
+        if (updateColors == true)
+            UpdateColors();
 
         if (lastPatternSelect == 0 || chVTTimeElapsedSinceX(lastPatternSelect) > MS2ST(60000))
         {
@@ -508,6 +589,89 @@ static void cmd_reset(BaseSequentialStream *chp, int argc, char *argv[])
     chprintf(chp, "Reset: {%d %d %d}\r\n", resetColor.R, resetColor.G, resetColor.B);
 }
 
+static void cmd_char(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    if (argc != 1)
+    {
+        chprintf(chp, "Usage: char [char]\r\n");
+        chprintf(chp, "       Draw a char [char]\r\n");
+        return;
+    }
+
+
+    if (activeTestPattern == 0xEF)
+    {
+        activeTestPattern = 0xEF - 1;
+    }
+    else
+    {
+        activeTestPattern = 0xEF;
+    }
+
+    char* input = argv[0];
+
+    int i;
+    for (i = 0; i < 16; i++)
+    {
+        char c = input[i];
+        cmd_char_text[i] = c;
+        if (c == 0)
+        {
+            break;
+        }
+    }
+
+    lastPatternSelect = chVTGetSystemTime();
+}
+
+static void cmd_draw(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    if (argc != 2)
+    {
+        chprintf(chp, "Usage: draw [x] [y]\r\n");
+        chprintf(chp, "       Draw a pixel [x] [y]\r\n");
+        return;
+    }
+
+
+    if (activeTestPattern == 0xDF)
+    {
+        activeTestPattern = 0xDF - 1;
+    }
+    else
+    {
+        activeTestPattern = 0xDF;
+    }
+
+    pixel[0] = (int16_t)atoi(argv[0]);
+    pixel[1] = (int16_t)atoi(argv[1]);
+
+    lastPatternSelect = chVTGetSystemTime();
+}
+
+static void cmd_volume(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    if (argc != 1)
+    {
+        chprintf(chp, "Usage: vol [volume] \r\n");
+        return;
+    }
+
+
+    if (activeTestPattern == 0xCF)
+    {
+        activeTestPattern = 0xCF - 1;
+    }
+    else
+    {
+        activeTestPattern = 0xCF;
+    }
+
+    volume = (int8_t)atoi(argv[0]);
+
+    lastPatternSelect = chVTGetSystemTime();
+}
+
 
 static const ShellCommand commands[] = {
   {"mem", cmd_mem},
@@ -515,6 +679,9 @@ static const ShellCommand commands[] = {
   {"pattern", cmd_pattern},
   {"blink", cmd_blink},
   {"reset", cmd_reset},
+  {"char", cmd_char},
+  {"draw", cmd_draw},
+  {"vol", cmd_volume},
   {NULL, NULL}
 };
 
@@ -545,28 +712,15 @@ int main(void)
      */
     shellInit();
 
-    /*
-     * Initializes a serial-over-USB CDC driver.
-     */
-    sduObjectInit(&SDU1);
-    sduStart(&SDU1, &serusbcfg);
 
-    /*
-     * Activates the USB driver and then the USB bus pull-up on D+.
-     * Note, a delay is inserted in order to not have to disconnect the cable
-     * after a reset.
-     */
-    usbDisconnectBus(serusbcfg.usbp);
-    chThdSleepMilliseconds(1000);
-    usbStart(serusbcfg.usbp, &usbcfg);
-    usbConnectBus(serusbcfg.usbp);
+    BoardDriverInit();
 
-    /*
-     * Starts ws2811 driver
-     */
-    ws2811ObjectInit(&ws2811);
-    ws2811Start(&ws2811, &ws2811_cfg);
-    palSetGroupMode(GPIOA, 0b00000010, 0, PAL_MODE_OUTPUT_PUSHPULL|PAL_STM32_OSPEED_HIGHEST|PAL_STM32_PUDR_FLOATING);
+    BoardDriverStart();
+
+
+
+
+
 
 
     activeTestPattern = 2;
