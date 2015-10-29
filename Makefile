@@ -87,6 +87,7 @@ PROJECT = tmb_extcontrol
 
 # Imported source files and paths
 CHIBIOS = submodules/chibios
+TMBEFFECTS = submodules/tmb_effects
 # Startup files.
 include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
 # HAL-OSAL files (optional).
@@ -114,18 +115,15 @@ CSRC = $(STARTUPSRC) \
        $(CHIBIOS)/os/various/shell.c \
        $(CHIBIOS)/os/hal/lib/streams/memstreams.c \
        $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
-       $(PRJ_SRC)/display.c \
-       $(PRJ_SRC)/color.c \
+       ${TMBEFFECTS}/color.c \
+       ${TMBEFFECTS}/display.c \
+       ${TMBEFFECTS}/effect.c \
+       ${TMBEFFECTS}/fade.c \
+       ${TMBEFFECTS}/effect_randompixels.c \
+       ${TMBEFFECTS}/effect_fallingpixels.c \
+       $(PRJ_SRC)/effect_control.c \
        $(PRJ_SRC)/ws281x.c \
        $(PRJ_SRC)/usbcfg.c \
-       $(PRJ_SRC)/blink.c \
-       $(PRJ_SRC)/fadeout.c \
-       $(PRJ_SRC)/effect.c \
-       $(PRJ_SRC)/effect_simplecolor.c \
-       $(PRJ_SRC)/effect_randomcolor.c \
-       $(PRJ_SRC)/effect_wandering.c \
-       $(PRJ_SRC)/effect_fade.c \
-       $(PRJ_SRC)/effect_font_5x5.c \
        board_drivers.c \
        main.c \
        ledconf.c
@@ -162,7 +160,8 @@ INCDIR = target \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(TESTINC) \
          $(CHIBIOS)/os/hal/lib/streams \
          $(CHIBIOS)/os/various \
-         src 
+         $(TMBEFFECTS) \
+         src
 
 #
 # Project, sources and paths

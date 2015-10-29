@@ -6,6 +6,7 @@
  */
 
 #include "board_drivers.h"
+#include "ledconf.h"
 
 #include "ch.h"
 #include "hal.h"

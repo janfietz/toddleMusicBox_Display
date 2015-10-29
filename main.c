@@ -31,17 +31,8 @@
 #include <stdlib.h>
 
 #include "ledconf.h"
-#include "display.h"
-#include "color.h"
-#include "blink.h"
-#include "fadeout.h"
 #include "effect_control.h"
-
-#include "effect_wandering.h"
-#include "effect_simplecolor.h"
-#include "effect_randomcolor.h"
-#include "effect_fade.h"
-#include "effect_font_5x5.h"
+#include "ws281x.h"
 
 
 /* Virtual serial port over USB.*/
@@ -96,140 +87,9 @@ static void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]) {
   } while (tp != NULL);
 }
 
-static void cmd_pattern(BaseSequentialStream *chp, int argc, char *argv[])
-{
-    if (argc!=1) {
-        chprintf(chp, "Usage: pattern [0|1|2]\r\n");
-        chprintf(chp, "       Select a LED test pattern [pattern]\r\n");
-        return;
-    }
-    int pattern = atoi(argv[0]);
-    chprintf(chp, "Pattern: %d Started\r\n",pattern);
-    activeTestPattern = pattern;
-
-    lastPatternSelect = chVTGetSystemTime();
-}
-
-static void cmd_blink(BaseSequentialStream *chp, int argc, char *argv[])
-{
-    if (argc!=1) {
-        chprintf(chp, "Usage: blink [led]\r\n");
-        chprintf(chp, "       Select a LED to blink [LED]\r\n");
-        return;
-    }
-    int led = atoi(argv[0]);
-    if (led < LEDCOUNT)
-    {
-        if (blink[led] == NULL)
-        {
-            BlinkStart(led, true, chVTGetSystemTime());
-            blink[led] = &BlinkExecute;
-            chprintf(chp, "Blink: %d started\r\n", led);
-        }
-        else
-        {
-            blink[led] = NULL;
-            chprintf(chp, "Blink: %d stoped\r\n", led);
-        }
-    }
-
-}
-
-
-
-static void cmd_char(BaseSequentialStream *chp, int argc, char *argv[])
-{
-    if (argc != 1)
-    {
-        chprintf(chp, "Usage: char [char]\r\n");
-        chprintf(chp, "       Draw a char [char]\r\n");
-        return;
-    }
-
-
-    if (activeTestPattern == 0xEF)
-    {
-        activeTestPattern = 0xEF - 1;
-    }
-    else
-    {
-        activeTestPattern = 0xEF;
-    }
-
-    char* input = argv[0];
-
-    int i;
-    for (i = 0; i < 16; i++)
-    {
-        char c = input[i];
-        cmd_char_text[i] = c;
-        if (c == 0)
-        {
-            break;
-        }
-    }
-
-    lastPatternSelect = chVTGetSystemTime();
-}
-
-static void cmd_draw(BaseSequentialStream *chp, int argc, char *argv[])
-{
-    if (argc != 2)
-    {
-        chprintf(chp, "Usage: draw [x] [y]\r\n");
-        chprintf(chp, "       Draw a pixel [x] [y]\r\n");
-        return;
-    }
-
-
-    if (activeTestPattern == 0xDF)
-    {
-        activeTestPattern = 0xDF - 1;
-    }
-    else
-    {
-        activeTestPattern = 0xDF;
-    }
-
-    pixel[0] = (int16_t)atoi(argv[0]);
-    pixel[1] = (int16_t)atoi(argv[1]);
-
-    lastPatternSelect = chVTGetSystemTime();
-}
-
-static void cmd_volume(BaseSequentialStream *chp, int argc, char *argv[])
-{
-    if (argc != 1)
-    {
-        chprintf(chp, "Usage: vol [volume] \r\n");
-        return;
-    }
-
-
-    if (activeTestPattern == 0xCF)
-    {
-        activeTestPattern = 0xCF - 1;
-    }
-    else
-    {
-        activeTestPattern = 0xCF;
-    }
-
-    volume = (int8_t)atoi(argv[0]);
-
-    lastPatternSelect = chVTGetSystemTime();
-}
-
-
 static const ShellCommand commands[] = {
   {"mem", cmd_mem},
   {"threads", cmd_threads},
-  {"pattern", cmd_pattern},
-  {"blink", cmd_blink},
-  {"reset", cmd_reset},
-  {"char", cmd_char},
-  {"draw", cmd_draw},
-  {"vol", cmd_volume},
   {NULL, NULL}
 };
 
