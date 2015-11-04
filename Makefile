@@ -88,6 +88,7 @@ PROJECT = tmb_extcontrol
 # Imported source files and paths
 CHIBIOS = submodules/chibios
 TMBEFFECTS = submodules/tmb_effects
+MFRC522 = submodules/mfrc522
 # Startup files.
 include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
 # HAL-OSAL files (optional).
@@ -121,6 +122,7 @@ CSRC = $(STARTUPSRC) \
        ${TMBEFFECTS}/fade.c \
        ${TMBEFFECTS}/effect_randompixels.c \
        ${TMBEFFECTS}/effect_fallingpixels.c \
+       ${MFRC522}/mfrc522.c \
        $(PRJ_SRC)/effect_control.c \
        $(PRJ_SRC)/ws281x.c \
        $(PRJ_SRC)/usbcfg.c \
@@ -160,6 +162,7 @@ INCDIR = target \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(TESTINC) \
          $(CHIBIOS)/os/hal/lib/streams \
          $(CHIBIOS)/os/various \
+         ${MFRC522} \
          $(TMBEFFECTS) \
          src
 

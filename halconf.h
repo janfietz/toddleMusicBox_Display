@@ -169,6 +169,13 @@
 #if !defined(HAL_USE_WS2811) || defined(__DOXYGEN__)
 #define HAL_USE_WS2811                 TRUE
 #endif
+
+/**
+ * @brief   Enables the USB subsystem.
+ */
+#if !defined(HAL_USE_MFRC522) || defined(__DOXYGEN__)
+#define HAL_USE_MFRC522                 TRUE
+#endif
 /*===========================================================================*/
 /* ADC driver related settings.                                              */
 /*===========================================================================*/
