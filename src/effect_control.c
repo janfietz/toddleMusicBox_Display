@@ -15,6 +15,7 @@
 #include "ledconf.h"
 #include "effect_randompixels.h"
 #include "effect_fallingpixels.h"
+#include "effect_fadingpixels.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -106,6 +107,34 @@ static struct Effect effFallingPixels =
     .p_next = NULL,
 };
 
+/*===========================================================================*/
+/* FadingPixels                                                             */
+/*===========================================================================*/
+static struct EffectFadingPixelsCfg effFadingPixels_cfg =
+{
+    .spawninterval = MS2ST(300),
+    .fadeperiod = MS2ST(2000),
+    .color = {0, 0, 0},
+    .randomColor = true,
+    .number = 1,
+};
+
+static struct EffectFadingPixelsData effFadingPixels_data =
+{
+    .lastspawn = 0,
+    .pixelColors = colorEffects1,
+    .fadeStates = fadeEffects1,
+};
+
+static struct Effect effFadingPixels =
+{
+    .effectcfg = &effFadingPixels_cfg,
+    .effectdata = &effFadingPixels_data,
+    .update = &EffectFadingPixelsUpdate,
+    .reset = &EffectFadingPixelsReset,
+    .p_next = NULL,
+};
+
 
 /*===========================================================================*/
 /* Driver local functions.                                                   */
@@ -164,6 +193,18 @@ static THD_FUNCTION(EffectControlThread, arg)
             else if (effectNumber == 2)
             {
                 effects.p_next = &effFallingPixels;
+                ColorRandom(&effFallingPixels_cfg.color);
+                effFallingPixels_cfg.randomRed = (rand() % 2) > 0;
+                effFallingPixels_cfg.randomGreen = (rand() % 2) > 0;
+                effFallingPixels_cfg.randomBlue = (rand() % 2) > 0;
+            }
+            else if (effectNumber == 3)
+            {
+                effFadingPixels_cfg.number = rand() % 3;
+                ColorRandom(&effFadingPixels_cfg.color);
+                effFadingPixels_cfg.randomColor = (rand() % 2) > 0;
+
+                effects.p_next = &effFadingPixels;
             }
             ResetEffects();
         }
@@ -175,7 +216,7 @@ static THD_FUNCTION(EffectControlThread, arg)
             if (chVTTimeElapsedSinceX(time) > MS2ST(15000))
             {
                 activeEffect++;
-                if (activeEffect > 2)
+                if (activeEffect > 3)
                 {
                     activeEffect = 1;
                 }
@@ -217,7 +258,7 @@ void ResetWithColor(struct Color* color)
 
 void EffectControlInitThread(void)
 {
-    activeEffect = 2;
+    activeEffect = 1;
 }
 
 void EffectControlStartThread(void)

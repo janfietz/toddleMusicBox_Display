@@ -121,6 +121,7 @@ CSRC = $(STARTUPSRC) \
        ${TMBEFFECTS}/effect.c \
        ${TMBEFFECTS}/fade.c \
        ${TMBEFFECTS}/effect_randompixels.c \
+       ${TMBEFFECTS}/effect_fadingpixels.c \
        ${TMBEFFECTS}/effect_fallingpixels.c \
        ${MFRC522}/mfrc522.c \
        $(PRJ_SRC)/effect_control.c \
