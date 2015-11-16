@@ -176,6 +176,11 @@
 #if !defined(HAL_USE_MFRC522) || defined(__DOXYGEN__)
 #define HAL_USE_MFRC522                 TRUE
 #endif
+
+
+#if !defined(DRIVER_USE_IWDG) || defined(__DOXYGEN__)
+#define DRIVER_USE_IWDG               TRUE
+#endif
 /*===========================================================================*/
 /* ADC driver related settings.                                              */
 /*===========================================================================*/

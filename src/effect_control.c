@@ -16,6 +16,8 @@
 #include "effect_randompixels.h"
 #include "effect_fallingpixels.h"
 #include "effect_fadingpixels.h"
+#include "effect_volume.h"
+#include "effect_buttons.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -50,6 +52,14 @@ struct DisplayBuffer display =
 
 struct Color resetColor;
 static int16_t activeEffect = 0;
+static bool nextEffect = false;
+static bool noEffect = false;
+static bool showControls = false;
+
+static bool showVolume = false;
+static bool showVolumeEffect = false;
+static uint8_t newVolume = 0;
+static systime_t startVolumeEffect = 0;
 
 /*===========================================================================*/
 /* RandmoPixels                                                              */
@@ -89,6 +99,9 @@ static struct EffectFallingPixelsCfg effFallingPixels_cfg =
     .randomRed = true,
     .randomGreen = true,
     .randomBlue = true,
+
+    .speed = MS2ST(100),
+    .speedVariance = MS2ST(100),
 };
 
 static struct EffectFallingPixelsData effFallingPixels_data =
@@ -135,6 +148,96 @@ static struct Effect effFadingPixels =
     .p_next = NULL,
 };
 
+/*===========================================================================*/
+/* Volume                                                                    */
+/*===========================================================================*/
+static struct EffectVolumeCfg effVolume_cfg =
+{
+    .fontColor = {0x00, 0x8D, 0x6A},
+    .minColor = {0x00, 0xAE, 0x00},
+    .maxColor = {0x4D, 0x00, 0x00},
+    .showNumber = true,
+    .showBackground = false,
+    .speed = MS2ST(30),
+    .volume = 0,
+};
+
+static struct EffectVolumeData effVolume_data =
+{
+    .lastStepupdate = 0,
+    .step = 0,
+};
+
+static struct Effect effVolume =
+{
+    .effectcfg = &effVolume_cfg,
+    .effectdata = &effVolume_data,
+    .update = &EffectVolumeUpdate,
+    .reset = &EffectVolumeReset,
+    .p_next = NULL,
+};
+
+/*===========================================================================*/
+/* Buttons                                                                   */
+/*===========================================================================*/
+static struct EffectButtonsCfg effButtons_cfg =
+{
+    .play = {
+        .x = 0,
+        .y = 0,
+        .color = {0x51, 0xBD, 0x1f},
+    },
+    .vol_up = {
+        .x = 10,
+        .y = 4,
+        .color = {0x00, 0xFF, 0xBF},
+    },
+    .vol_down = {
+        .x = 0,
+        .y = 4,
+        .color = {0x00, 0x8D, 0x6A},
+    },
+    .next = {
+        .x = 10,
+        .y = 2,
+        .color = {0xFF, 0x00, 0x2D},
+    },
+    .prev = {
+        .x = 0,
+        .y = 2,
+        .color = {0x9D, 0x00, 0x1C},
+    },
+    .special = {
+        .x = 10,
+        .y = 0,
+        .color = {0xFF, 0x5F, 0x00},
+    },
+
+    .playMode = EFFECT_BUTTON_MODE_EMPTYPLAYLIST,
+    .colorModeEmptyPlayList = {0x29, 0x00, 0x02},
+    .colorModePause = {0x28, 0x5F, 0x0F},
+    .colorModeStop = {0xE4, 0x24, 0x2E},
+
+    .blendperiod = MS2ST(500),
+};
+
+static struct EffectButtonsData effButtons_data =
+{
+    .lastPlayMode = EFFECT_BUTTON_MODE_EMPTYPLAYLIST,
+    .lastBlendStep = 1.0f,
+    .lastPlayModeColor = {0x29, 0x00, 0x02},
+    .lastUpdate = 0,
+};
+
+static struct Effect effButtons =
+{
+    .effectcfg = &effButtons_cfg,
+    .effectdata = &effButtons_data,
+    .update = &EffectButtonsUpdate,
+    .reset = &EffectButtonsReset,
+    .p_next = NULL,
+};
+
 
 /*===========================================================================*/
 /* Driver local functions.                                                   */
@@ -144,12 +247,43 @@ static void Draw(void)
 {
     int i;
     systime_t current = chVTGetSystemTime();
+    /* clear buffer */
+    memset(display.pixels, 0, sizeof(struct Color) * LEDCOUNT);
+
     if (effects.p_next != NULL)
     {
-        /* clear buffer */
-        memset(display.pixels, 0, sizeof(struct Color) * LEDCOUNT);
-
         EffectUpdate(effects.p_next, 0, 0, current, &display);
+    }
+
+    /* render volume for a 5s */
+    if (showVolume == true)
+    {
+        startVolumeEffect = current;
+        showVolume = false;
+        effVolume_cfg.volume = newVolume;
+        showVolumeEffect = true;
+        if (chVTTimeElapsedSinceX(startVolumeEffect) > MS2ST(15000))
+        {
+            EffectReset(&effVolume, 0, 0, current);
+        }
+    }
+
+    if (showVolumeEffect == true)
+    {
+        if (chVTTimeElapsedSinceX(startVolumeEffect) <= MS2ST(5000))
+        {
+            EffectUpdate(&effVolume, 0, 0, current, &display);
+        }
+        else
+        {
+            showVolumeEffect = false;
+        }
+    }
+
+    //draw buttons
+    if (showControls == true)
+    {
+        EffectUpdate(&effButtons, 0, 0, current, &display);
     }
 
     for (i = 0; i < LEDCOUNT; i++)
@@ -177,6 +311,25 @@ static THD_FUNCTION(EffectControlThread, arg)
     systime_t time = chVTGetSystemTime();
     while (TRUE)
     {
+        if (noEffect == true)
+        {
+            effects.p_next = NULL;
+        }
+        if (nextEffect == true)
+        {
+            noEffect = false;
+            nextEffect = false;
+
+            activeEffect++;
+            if (activeEffect > 3)
+            {
+                activeEffect = 1;
+            }
+
+            time = chVTGetSystemTime();
+            (void)time;
+        }
+
         if (activeEffect != effectNumber)
         {
             if(effectNumber == 1)
@@ -200,7 +353,7 @@ static THD_FUNCTION(EffectControlThread, arg)
             }
             else if (effectNumber == 3)
             {
-                effFadingPixels_cfg.number = rand() % 3;
+                effFadingPixels_cfg.number = 1 + (rand() % 3);
                 ColorRandom(&effFadingPixels_cfg.color);
                 effFadingPixels_cfg.randomColor = (rand() % 2) > 0;
 
@@ -210,20 +363,6 @@ static THD_FUNCTION(EffectControlThread, arg)
         }
 
         Draw();
-
-        if (lastPatternSelect == 0 || chVTTimeElapsedSinceX(lastPatternSelect) > MS2ST(60000))
-        {
-            if (chVTTimeElapsedSinceX(time) > MS2ST(15000))
-            {
-                activeEffect++;
-                if (activeEffect > 3)
-                {
-                    activeEffect = 1;
-                }
-
-                time = chVTGetSystemTime();
-            }
-        }
 
         chThdSleepMilliseconds(10);
     }
@@ -258,11 +397,43 @@ void ResetWithColor(struct Color* color)
 
 void EffectControlInitThread(void)
 {
-    activeEffect = 1;
+    activeEffect = 2;
 }
 
 void EffectControlStartThread(void)
 {
     chThdCreateStatic(waEffectControlThread, sizeof(waEffectControlThread), LOWPRIO, EffectControlThread, NULL);
+}
+
+void EffectControlNewPlayMode(uint8_t mode)
+{
+    if (mode <= EFFECT_BUTTON_MODE_EMPTYPLAYLIST)
+        effButtons_cfg.playMode = mode;
+}
+
+void EffectControlNextEffect(void)
+{
+    nextEffect = true;
+}
+
+void EffectControlNoEffect(void)
+{
+    noEffect = true;
+}
+
+void EffectControlHideControls(void)
+{
+    showControls = false;
+}
+
+void EffectControlShowControls(void)
+{
+    showControls = true;
+}
+
+void EffectControlVolume(uint8_t volume)
+{
+    showVolume = true;
+    newVolume = volume;
 }
 /** @} */

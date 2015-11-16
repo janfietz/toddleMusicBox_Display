@@ -5,7 +5,7 @@
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -O0 -ggdb -fomit-frame-pointer -falign-functions=16
+  USE_OPT = -Os -ggdb -fomit-frame-pointer -falign-functions=16
 endif
 
 # C specific options here (added to USE_OPT).
@@ -89,6 +89,7 @@ PROJECT = tmb_extcontrol
 CHIBIOS = submodules/chibios
 TMBEFFECTS = submodules/tmb_effects
 MFRC522 = submodules/mfrc522
+CHIBIOS_DRIVERS = submodules/chibios-drivers
 # Startup files.
 include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
 # HAL-OSAL files (optional).
@@ -99,7 +100,6 @@ include $(CHIBIOS)/os/hal/osal/rt/osal.mk
 # RTOS files (optional).
 include $(CHIBIOS)/os/rt/rt.mk
 include $(CHIBIOS)/os/rt/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
-
 
 # Define linker script file here
 LDSCRIPT= $(STARTUPLD)/STM32F407xG.ld
@@ -116,13 +116,18 @@ CSRC = $(STARTUPSRC) \
        $(CHIBIOS)/os/various/shell.c \
        $(CHIBIOS)/os/hal/lib/streams/memstreams.c \
        $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
+       $(CHIBIOS_DRIVERS)/src/iwdg_driver.c \
+       $(CHIBIOS_DRIVERS)/stm32/iwdg_driver_lld.c \
        ${TMBEFFECTS}/color.c \
        ${TMBEFFECTS}/display.c \
        ${TMBEFFECTS}/effect.c \
        ${TMBEFFECTS}/fade.c \
+       ${TMBEFFECTS}/font_5x5.c \
        ${TMBEFFECTS}/effect_randompixels.c \
        ${TMBEFFECTS}/effect_fadingpixels.c \
        ${TMBEFFECTS}/effect_fallingpixels.c \
+       ${TMBEFFECTS}/effect_volume.c \
+       ${TMBEFFECTS}/effect_buttons.c \
        ${MFRC522}/mfrc522.c \
        $(PRJ_SRC)/effect_control.c \
        $(PRJ_SRC)/ws281x.c \
@@ -163,6 +168,8 @@ INCDIR = target \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(TESTINC) \
          $(CHIBIOS)/os/hal/lib/streams \
          $(CHIBIOS)/os/various \
+         $(CHIBIOS_DRIVERS)/inc \
+         $(CHIBIOS_DRIVERS)/stm32 \
          ${MFRC522} \
          $(TMBEFFECTS) \
          src

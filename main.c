@@ -17,6 +17,10 @@
 #include "ch.h"
 #include "hal.h"
 
+/* addition driver */
+
+#include "iwdg_driver.h"
+
 #include "board_drivers.h"
 
 #include "chprintf.h"
@@ -49,6 +53,10 @@ ws2811Driver ws2811;
 
 MFRC522Driver RFID1;
 
+static const IWDGConfig IWDGcfg = {
+    .counter = 0x0A,
+    .div = IWDG_DIV_32,
+};
 
 void SetUpdateLed(void)
 {
@@ -143,10 +151,89 @@ static void cmd_showcarduid(BaseSequentialStream *chp, int argc, char *argv[])
 
 }
 
+static void cmd_playmode(BaseSequentialStream *chp, int argc, char *argv[])
+{
+  if (argc != 1) {
+    chprintf(chp, "Usage: mode <0|1|2|3>\r\n");
+    return;
+  }
+
+  EffectControlNewPlayMode((uint8_t)atoi(argv[0]));
+
+  chprintf(chp, "\r\n");
+
+}
+
+static void cmd_nexteffect(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    (void)argv;
+    if (argc > 0) {
+      chprintf(chp, "Usage: nexteffect\r\n");
+      return;
+    }
+
+    EffectControlNextEffect();
+    chprintf(chp, "\r\n");
+}
+
+static void cmd_noeffect(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    (void)argv;
+    if (argc > 0) {
+      chprintf(chp, "Usage: noeffect\r\n");
+      return;
+    }
+
+    EffectControlNoEffect();
+    chprintf(chp, "\r\n");
+}
+
+static void cmd_hidecontrols(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    (void)argv;
+    if (argc > 0) {
+      chprintf(chp, "Usage: hidecontrols\r\n");
+      return;
+    }
+
+    EffectControlHideControls();
+    chprintf(chp, "\r\n");
+}
+
+static void cmd_showcontrols(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    (void)argv;
+    if (argc > 0) {
+      chprintf(chp, "Usage: showcontrols\r\n");
+      return;
+    }
+
+    EffectControlShowControls();
+    chprintf(chp, "\r\n");
+}
+
+static void cmd_volume(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    if (argc != 1) {
+        chprintf(chp, "Usage: volume <0-100>\r\n");
+        return;
+    }
+
+    EffectControlVolume((uint8_t)atoi(argv[0]));
+
+    chprintf(chp, "\r\n");
+}
+
 static const ShellCommand commands[] = {
   {"mem", cmd_mem},
   {"threads", cmd_threads},
   {"uid", cmd_showcarduid},
+  {"playmode", cmd_playmode},
+  {"nexteffect", cmd_nexteffect},
+  {"noeffect", cmd_noeffect},
+  {"hidecontrols", cmd_hidecontrols},
+  {"showcontrols", cmd_showcontrols},
+  {"volume", cmd_volume},
   {NULL, NULL}
 };
 
@@ -156,8 +243,7 @@ static const ShellConfig shell_cfg1 = {
 };
 
 /*
- * This is a periodic thread that reads accelerometer and outputs
- * result to SPI2 and PWM.
+ * This is a periodic thread that reads uid from rfid periphal
  */
 static THD_WORKING_AREA(waThread1, 256);
 static THD_FUNCTION(Thread1, arg) {
@@ -197,6 +283,24 @@ static THD_FUNCTION(Thread1, arg) {
 }
 
 /*
+ * This is a periodic thread that reads uid from rfid periphal
+ */
+static THD_WORKING_AREA(waWDGThread1, 128);
+static THD_FUNCTION(WDGThread, arg) {
+
+  (void)arg;
+  chRegSetThreadName("watchdog");
+
+  iwdgStart(&IWDGD, &IWDGcfg);
+  while (true) {
+
+    iwdgReset(&IWDGD);
+
+    chThdSleep(MS2ST(5));
+  }
+}
+
+/*
  * Application entry point.
  */
 
@@ -212,7 +316,14 @@ int main(void)
      *   RTOS is active.
      */
     halInit();
+    iwdgInit();
+
     chSysInit();
+
+    /*
+    * Creates watchdog.
+    */
+    chThdCreateStatic(waWDGThread1, sizeof(waWDGThread1), NORMALPRIO, WDGThread, NULL);
     /*
      * Shell manager initialization.
      */

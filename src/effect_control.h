@@ -46,6 +46,13 @@ extern "C" {
     void EffectControlInitThread(void);
     void EffectControlStartThread(void);
 
+    void EffectControlNewPlayMode(uint8_t mode);
+    void EffectControlNextEffect(void);
+    void EffectControlNoEffect(void);
+    void EffectControlHideControls(void);
+    void EffectControlShowControls(void);
+    void EffectControlVolume(uint8_t volume);
+
     extern void SetLedColor(uint16_t led, const struct Color* color);
     extern void SetUpdateLed(void);
 #ifdef __cplusplus

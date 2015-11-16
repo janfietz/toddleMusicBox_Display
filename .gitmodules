@@ -7,3 +7,6 @@
 [submodule "submodules/mfrc522"]
 	path = submodules/mfrc522
 	url = git@github.com:janfietz/mfrc522.git
+[submodule "submodules/chibios-drivers"]
+	path = submodules/chibios-drivers
+	url = git@github.com:ChibiOS/ChibiOS-Drivers.git
