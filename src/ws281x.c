@@ -139,7 +139,7 @@ void ws2811Start(ws2811Driver *ws2811p, const ws2811Config *config) {
 	int j;
 	for (j = 0; j < ((ws2811p->config->ledCount) * 24); j++)
 	{
-	    ws2811p->framebuffer[j] = 0;
+	    ws2811p->framebuffer[j] = config->portmask;
 	}
 
     dmaStreamAllocate(ws2811p->config->dmastp_reset, WS2811_IRQ_PRIORITY,
