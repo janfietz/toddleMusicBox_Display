@@ -46,6 +46,8 @@
 
 #define MFRC522_RESET GPIOC_PIN5
 
+#define USE_WDG FALSE
+
 
 /* Virtual serial port over USB.*/
 SerialUSBDriver SDU1;
@@ -71,6 +73,7 @@ void SetLedColor(uint16_t led, const struct Color* color)
 static uint8_t txbuf[2];
 static uint8_t rxbuf[2];
 
+static MUTEX_DECL(CardIDMutex);
 static struct MifareUID CardID;
 
 void MFRC522WriteRegister(MFRC522Driver* mfrc522p, uint8_t addr, uint8_t val)
@@ -141,6 +144,11 @@ static void cmd_showcarduid(BaseSequentialStream *chp, int argc, char *argv[])
     return;
   }
 
+  static struct MifareUID uid;
+  chMtxLock(&CardIDMutex);
+  uid.size = CardID.size;
+  memcpy(uid.bytes, CardID.bytes, sizeof(CardID.bytes));
+  chMtxUnlock(&CardIDMutex);
   uint8_t i;
   for(i = 0; i < CardID.size; i++)
   {
@@ -269,12 +277,14 @@ static THD_FUNCTION(Thread1, arg) {
       }
       active = !active;
 
+      chMtxLock(&CardIDMutex);
       if (MifareCheck(&RFID1, &CardID) == MIFARE_OK) {
           palSetPad(GPIOD, LED_GREEN);
       } else {
           palClearPad(GPIOD, LED_GREEN);
           CardID.size = 0;
       }
+      chMtxUnlock(&CardIDMutex);
 
 
     /* Waiting until the next 250 milliseconds time interval.*/
@@ -285,6 +295,7 @@ static THD_FUNCTION(Thread1, arg) {
 /*
  * This is a periodic thread that reads uid from rfid periphal
  */
+#if USE_WDG
 static THD_WORKING_AREA(waWDGThread1, 128);
 static THD_FUNCTION(WDGThread, arg) {
 
@@ -299,7 +310,7 @@ static THD_FUNCTION(WDGThread, arg) {
     chThdSleep(MS2ST(5));
   }
 }
-
+#endif
 /*
  * Application entry point.
  */
@@ -323,7 +334,9 @@ int main(void)
     /*
     * Creates watchdog.
     */
+#if USE_WDG
     chThdCreateStatic(waWDGThread1, sizeof(waWDGThread1), NORMALPRIO, WDGThread, NULL);
+#endif
     /*
      * Shell manager initialization.
      */
