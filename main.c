@@ -46,7 +46,7 @@
 
 #define MFRC522_RESET GPIOC_PIN5
 
-#define USE_WDG FALSE
+#define USE_WDG TRUE
 
 
 /* Virtual serial port over USB.*/
