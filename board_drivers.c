@@ -15,36 +15,16 @@
 #include "usbcfg.h"
 #include "mfrc522.h"
 
-extern ws2811Driver ws2811;
+extern ws281xDriver ws281x;
 extern SerialUSBDriver SDU1;
 extern MFRC522Driver RFID1;
 
-static ws2811Config ws2811_cfg =
+static ws281xConfig ws281x_cfg =
 {
     LEDCOUNT,
     LED1,
-    0b00000010,
-    (uint32_t)(&(GPIOA->BSRR.H.set)),
-    (uint32_t)(&(GPIOA->BSRR.H.clear)),
-    WS2812_BIT_PWM_WIDTH,
-    WS2812_ZERO_PWM_WIDTH,
-    WS2812_ONE_PWM_WIDTH,
     {
-        168000000 / 2 / WS2812_BIT_PWM_WIDTH,
-        (LEDCOUNT * 24) + 20,
-        NULL,
-        {
-            { PWM_OUTPUT_ACTIVE_HIGH, NULL },
-            { PWM_OUTPUT_DISABLED, NULL },
-            { PWM_OUTPUT_DISABLED, NULL },
-            { PWM_OUTPUT_DISABLED, NULL }
-        },
-        TIM_CR2_MMS_2, /* master mode selection */
-        0,
-    },
-    &PWMD2,
-    {
-        168000000 / 2,
+        12000000,
         WS2812_BIT_PWM_WIDTH,
         NULL,
         {
@@ -54,12 +34,14 @@ static ws2811Config ws2811_cfg =
             { PWM_OUTPUT_ACTIVE_HIGH, NULL }
         },
         0,
-        TIM_DIER_UDE | TIM_DIER_CC3DE | TIM_DIER_CC1DE,
+        TIM_DIER_UDE | TIM_DIER_CC1DE,
     },
-    &PWMD1,
-    STM32_DMA2_STREAM5,
-    STM32_DMA2_STREAM1,
-    STM32_DMA2_STREAM6,
+    &PWMD3,
+    0,
+    WS2812_ZERO_PWM_WIDTH,
+    WS2812_ONE_PWM_WIDTH,
+    STM32_DMA1_STREAM4,
+    5
 };
 
 static MFRC522Config RFID1_cfg =
@@ -83,7 +65,7 @@ static const SPIConfig SPI1cfg = {
 void BoardDriverInit(void)
 {
     sduObjectInit(&SDU1);
-    ws2811ObjectInit(&ws2811);
+    ws281xObjectInit(&ws281x);
     MFRC522ObjectInit(&RFID1);
 }
 
@@ -92,8 +74,8 @@ void BoardDriverStart(void)
     spiStart(&SPID1, &SPI1cfg);
     MFRC522Start(&RFID1, &RFID1_cfg);
 
-    ws2811Start(&ws2811, &ws2811_cfg);
-    palSetGroupMode(GPIOA, 0b00000010, 0, PAL_MODE_OUTPUT_PUSHPULL|PAL_STM32_OSPEED_HIGHEST|PAL_STM32_PUDR_FLOATING);
+    ws281xStart(&ws281x, &ws281x_cfg);
+    palSetPadMode(GPIOB, 4, PAL_STM32_OSPEED_HIGHEST | PAL_MODE_ALTERNATE(2));
 
     /*
      * Initializes a serial-over-USB CDC driver.
@@ -114,7 +96,7 @@ void BoardDriverStart(void)
 void BoardDriverShutdown(void)
 {
     sduStop(&SDU1);
-    ws2811Stop(&ws2811);
+    ws281xStop(&ws281x);
 
     MFRC522Stop(&RFID1);
     spiStop(&SPID1);

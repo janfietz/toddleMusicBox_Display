@@ -5,7 +5,7 @@
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -Os -ggdb -fomit-frame-pointer -falign-functions=16
+  USE_OPT = -O0 -ggdb -fomit-frame-pointer -falign-functions=16
 endif
 
 # C specific options here (added to USE_OPT).
@@ -30,7 +30,7 @@ endif
 
 # Enable this if you want link time optimizations (LTO)
 ifeq ($(USE_LTO),)
-  USE_LTO = yes
+  USE_LTO = no
 endif
 
 # If enabled, this option allows to compile the application in THUMB mode.
@@ -89,6 +89,7 @@ PROJECT = tmb_extcontrol
 CHIBIOS = submodules/chibios
 TMBEFFECTS = submodules/tmb_effects
 MFRC522 = submodules/mfrc522
+WS281X = submodules/ws281x
 CHIBIOS_DRIVERS = submodules/chibios-drivers
 # Startup files.
 include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
@@ -118,6 +119,7 @@ CSRC = $(STARTUPSRC) \
        $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
        $(CHIBIOS_DRIVERS)/src/iwdg_driver.c \
        $(CHIBIOS_DRIVERS)/stm32/iwdg_driver_lld.c \
+       $(WS281X)/ws281x.c \
        ${TMBEFFECTS}/color.c \
        ${TMBEFFECTS}/display.c \
        ${TMBEFFECTS}/effect.c \
@@ -130,7 +132,6 @@ CSRC = $(STARTUPSRC) \
        ${TMBEFFECTS}/effect_buttons.c \
        ${MFRC522}/mfrc522.c \
        $(PRJ_SRC)/effect_control.c \
-       $(PRJ_SRC)/ws281x.c \
        $(PRJ_SRC)/usbcfg.c \
        board_drivers.c \
        main.c \
@@ -170,7 +171,8 @@ INCDIR = target \
          $(CHIBIOS)/os/various \
          $(CHIBIOS_DRIVERS)/inc \
          $(CHIBIOS_DRIVERS)/stm32 \
-         ${MFRC522} \
+         $(WS281X) \
+         $(MFRC522) \
          $(TMBEFFECTS) \
          src
 

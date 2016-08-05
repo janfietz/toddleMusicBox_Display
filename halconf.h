@@ -164,10 +164,17 @@
 #endif
 
 /**
+ * @brief   Enables the WDG subsystem.
+ */
+#if !defined(HAL_USE_WDG) || defined(__DOXYGEN__)
+#define HAL_USE_WDG                 FALSE
+#endif
+
+/**
  * @brief   Enables the USB subsystem.
  */
-#if !defined(HAL_USE_WS2811) || defined(__DOXYGEN__)
-#define HAL_USE_WS2811                 TRUE
+#if !defined(HAL_USE_WS281X) || defined(__DOXYGEN__)
+#define HAL_USE_WS281X                 TRUE
 #endif
 
 /**

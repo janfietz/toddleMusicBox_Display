@@ -46,12 +46,12 @@
 
 #define MFRC522_RESET GPIOC_PIN5
 
-#define USE_WDG TRUE
+#define USE_WDG FALSE
 
 
 /* Virtual serial port over USB.*/
-SerialUSBDriver SDU1;
-ws2811Driver ws2811;
+
+ws281xDriver ws281x;
 
 MFRC522Driver RFID1;
 
@@ -62,12 +62,12 @@ static const IWDGConfig IWDGcfg = {
 
 void SetUpdateLed(void)
 {
-    ws2811Update(&ws2811);
+    ws281xUpdate(&ws281x);
 }
 
 void SetLedColor(uint16_t led, const struct Color* color)
 {
-    ws2811SetColor(&ws2811, led, color);
+    ws281xSetColor(&ws281x, led, color->R, color->G, color->B);
 }
 
 static uint8_t txbuf[2];
@@ -342,7 +342,7 @@ int main(void)
      */
     shellInit();
 
-    palSetPadMode(GPIOC, MFRC522_RESET, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST | PAL_STM32_PUDR_FLOATING);
+    palSetPadMode(GPIOC, MFRC522_RESET, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST | PAL_STM32_PUPDR_FLOATING);
     BoardDriverInit();
 
     BoardDriverStart();

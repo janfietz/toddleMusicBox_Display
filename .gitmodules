@@ -10,3 +10,6 @@
 [submodule "submodules/chibios-drivers"]
 	path = submodules/chibios-drivers
 	url = git@github.com:ChibiOS/ChibiOS-Drivers.git
+[submodule "submodules/ws281x"]
+	path = submodules/ws281x
+	url = git@github.com:janfietz/ws281x.git

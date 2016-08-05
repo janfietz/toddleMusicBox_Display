@@ -8,7 +8,7 @@
 #ifndef _LEDCONF_H_
 #define _LEDCONF_H_
 
-#include "led.h"
+#include "ws281x.h"
 
 #define LEDCOUNT 55
 
@@ -19,7 +19,7 @@
 #define LED_PLAYPAUSE 44
 #define LED_FUNC_01 54
 
-extern struct LedSetting LED1[LEDCOUNT];
+extern struct ws281xLEDSetting LED1[LEDCOUNT];
 
 
 #endif /* _LEDCONF_H_ */
